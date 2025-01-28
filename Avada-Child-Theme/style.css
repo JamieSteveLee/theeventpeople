@@ -1,0 +1,25 @@
+/*
+Theme Name: Avada Child
+Description: Child theme for Avada theme
+Author: ThemeFusion
+Author URI: https://theme-fusion.com
+Template: Avada
+Version: 1.0.0
+Text Domain:  Avada
+*/
+
+.hero-slider .fusion-video {
+	--awb-max-width: 100% !important;	
+}
+.hero-slider .flex-control-nav.flex-control-paging li a {
+	background-color: #fff;
+}
+.hero-slider .flex-control-nav.flex-control-paging li a.flex-active {
+	background-color: rebeccapurple;
+}
+
+
+.videomax .fusion-slider-container .tfs-slider,
+.videomax .fusion-slider-container .tfs-slider .flex-viewport {
+	overflow: visible !important;
+}
