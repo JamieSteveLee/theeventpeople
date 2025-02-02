@@ -2,7 +2,7 @@
     /*
     Business 'Request A Callback' form
     */
-    let isBusinessPage = $(body).hasClass('single-businesses');
+    let isBusinessPage = $('body').hasClass('single-businesses');
     if(isBusinessPage) {
         // cf7 hidden field names
         let hidBusinessName = $('[name="business-name"]');
@@ -14,10 +14,7 @@
         // Populate hidden fields with business details
         hidBusinessName.val(businessName);
 
-        let businessEmail = $('a[href^="mailto:"]').attr('href'); // Find the mailto link
-        if (businessEmail) {
-            businessEmail = businessEmail.replace('mailto:', ''); // Remove 'mailto:' prefix
-            hidBusinessEmail.val(businessEmail);
-        }
+        let businessEmail = $('h6 a[href^="mailto:"]').attr('href').replace('mailto:', '');
+        if (businessEmail) hidBusinessEmail.val(businessEmail);
     }
 }(jQuery));
