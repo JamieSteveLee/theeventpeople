@@ -12,6 +12,7 @@ A single contact form can be reused on all business pages, with the business nam
     - `[hidden business-email default:"[DEFAULT EMAIL ADDRESS]"]`
 2. In the **Mail** settings of the Contact Form 7 contact form:
     - Set the **To** address to **[business-email]**. (Ignore the warning from CF7 "Invalid mailbox syntax is used.")
+3. Only works on Business pages (checks for the `<body>` class `single-businesses`)
 
 ### Functionality
 On page load, if the page is a single business page, the hidden fields are populated:
