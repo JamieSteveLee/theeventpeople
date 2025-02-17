@@ -19,118 +19,217 @@ add_action('wp_enqueue_scripts', 'theme_enqueue_scripts');
 /*
 Add Your Business form
 */
-function create_business_from_avada_form_submission( $form_data ) {
-    $form_id = intval($form_data['submission']['form_id']);
-
-    // Check that this is the Add Your Business form
-    if ($form_id != 5) {
-        return;
+function upload_image_from_url($image_url, $post_id) {
+    // If no image URL, return false
+    if (empty($image_url)) {
+        return false;
     }
 
-    // Check that data exists
-    if ( !isset( $form_data['data'] ) || !is_array( $form_data['data'] ) ) {
+    // Get WordPress upload directory
+    $upload_dir = wp_upload_dir();
+    $image_data = file_get_contents($image_url);
+    $filename = basename($image_url);
+
+    if ($image_data) {
+        // Save image to the uploads directory
+        $file = $upload_dir['path'] . '/' . $filename;
+        file_put_contents($file, $image_data);
+
+        if (file_exists($file)) {
+            // Prepare the attachment
+            $file_type = wp_check_filetype($filename);
+            if (empty($file_type['type']) || !in_array($file_type['type'], ['image/jpeg', 'image/png', 'image/gif'])) {
+                return false; // If the file is not a valid image type, return false
+            }
+
+            $attachment = array(
+                'guid' => $upload_dir['url'] . '/' . basename($file),
+                'post_mime_type' => $file_type['type'],
+                'post_title' => sanitize_file_name($filename),
+                'post_content' => '',
+                'post_status' => 'inherit',
+            );
+
+            // Insert the attachment
+            $attachment_id = wp_insert_attachment($attachment, $file, $post_id);
+
+            require_once(ABSPATH . 'wp-admin/includes/image.php');
+            $attachment_data = wp_generate_attachment_metadata($attachment_id, $file);
+            wp_update_attachment_metadata($attachment_id, $attachment_data);
+
+            return $attachment_id;
+        }
+    }
+
+    return false;
+}
+
+function create_business_from_avada_form_submission($form_data) {
+    $form_id = intval($form_data['submission']['form_id']);
+
+    // Check if this is the Create Your Business form
+    if ($form_id != 5) {
         return;
     }
 
     // Extract form data
     $form_data_array = $form_data['data'];
+    // error_log(print_r($form_data_array, true));
 
-    // Set business name and description
-    $post_title = sanitize_text_field( $form_data_array['business_name'] ?? 'Unnamed Business' );
-    // $post_content = sanitize_textarea_field( $form_data_array['describe_your_business'] ?? 'Business description' );
-
-    // Business details
-    $business_details_established_date = sanitize_text_field( $form_data_array['established_date']);
-    $business_details_minimum_spend = sanitize_text_field( $form_data_array['business_details_minimum_spend']);
-    $business_details_per_type = sanitize_text_field( $form_data_array['business_details_per_type']);
-    $business_details_business_description = sanitize_textarea_field($form_data_array['describe_your_business']);
-    $business_details_address = sanitize_text_field( $form_data_array['business_details_address']);
-
-    // Key Facts
-
-    // Additional Features
-
-    // Contact Information
-    $contact_information_business_handle = sanitize_text_field($form_data_array['contact_information_business_handle']);
-    $contact_information_phone_number = sanitize_text_field($form_data_array['contact_information_phone_number']);
-    $contact_information_email_address = sanitize_text_field($form_data_array['contact_information_email_address']);
-    $contact_information_website_link = sanitize_text_field($form_data_array['contact_information_website_link']);
-
-    // Social Media
-    $social_media_instagram = sanitize_text_field($form_data_array['social_media_instagram']);
-    $social_media_facebook = sanitize_text_field($form_data_array['social_media_facebook']);
-    $social_media_tiktok = sanitize_text_field($form_data_array['social_media_tiktok']);
-    $social_media_twitter = sanitize_text_field($form_data_array['social_media_twitter']);
-    $social_media_youtube = sanitize_text_field($form_data_array['social_media_youtube']);
-    $social_media_linkedin = sanitize_text_field($form_data_array['social_media_linkedin']);
-    $social_media_pinterest = sanitize_text_field($form_data_array['social_media_pinterest']);
-
-    // Business Photos
-
-    // Highlight Video
-
+    // Set business name as the Post title
+    $post_title = sanitize_text_field($form_data_array['business_name'] ?? 'Unnamed Business');
 
     // Create post data
     $post_data = array(
         'post_title' => $post_title,
-        'post_content' => $post_content,
         'post_status' => 'draft',
         'post_author' => 0,
         'post_type' => 'businesses',
-        // 'tax_input' => array(
-        //     'business_category' => sanitize_text_field($form_data_array['industry-type']),  // Replace 'business_category' with your taxonomy name
-        // ),
     );
 
     // Insert post
-    $post_id = wp_insert_post( $post_data );
+    $post_id = wp_insert_post($post_data);
 
-    // Check if successful
-    if (!is_wp_error($post_id)) {
-        error_log('Post created successfully: ID ' . $post_id);
-
-        // Save Advanced Custom Fields (ACF)
-        $sanitized_form_data = array(
-            // Business details
-            'business_details_established_date' => $business_details_established_date,
-            'business_details_minimum_spend' => $business_details_minimum_spend,
-            'business_details_per_type' => $business_details_per_type,
-            'business_details_business_description' => $business_details_business_description,
-            'business_details_address' => $business_details_address,
-
-            // Key Facts
-
-            // Additional Features
-
-            // Contact Information
-            'contact_information_business_handle' => $contact_information_business_handle,
-            'contact_information_phone_number' => $contact_information_phone_number,
-            'contact_information_email_address' => $contact_information_email_address,
-            'contact_information_website_link' => $contact_information_website_link,
-
-            // Social Media
-            'social_media_instagram' => $social_media_instagram,
-            'social_media_facebook' => $social_media_facebook,
-            'social_media_tiktok' => $social_media_tiktok,
-            'social_media_twitter' => $social_media_twitter,
-            'social_media_youtube' => $social_media_youtube,
-            'social_media_linkedin' => $social_media_linkedin,
-            'social_media_pinterest' => $social_media_pinterest,
-
-            // Business Photos
-
-            // Highlight Video
-
-        );
-
-        // Loop through the array and update each field
-        foreach ($sanitized_form_data as $field_name => $field_value) {
-            update_field($field_name, $field_value, $post_id);
-        }
-    } else {
-        error_log('Post creation failed: ' . $post_id->get_error_message());
+    // Check insert post worked
+    if (is_wp_error($post_id) || !$post_id) {
+        return;
     }
+
+    // List of taxonomy fields
+    $taxonomy_fields = [
+        'decor-ambiance-category',
+        'drink-services-category',
+        'entertainment-category',
+        'planning-management-category',
+        'food-services-category',
+        'photography-video-category',
+        'transport-logistics-category',
+        'other-category'
+    ];
+
+    // Taxonomy 'industry-type' (select box)
+    if (!empty($form_data_array['industry-type'])) {
+        $industry_slug = $form_data_array['industry-type'];
+        $term = get_term_by('slug', $industry_slug, 'industry-type');
+        if ($term) {
+            $result = wp_set_object_terms($post_id, (int) $term->term_id, 'industry-type');
+        }
+    }
+
+    // Other taxonomy fields (checkboxes)
+    foreach ($taxonomy_fields as $taxonomy) {
+        if (!empty($form_data_array[$taxonomy]) && is_array($form_data_array[$taxonomy])) {
+            $term_ids = [];
+
+            foreach ($form_data_array[$taxonomy] as $slug) {
+                $term = get_term_by('slug', $slug, $taxonomy);
+                if ($term) {
+                    $term_ids[] = (int) $term->term_id;
+                } else {
+                    error_log("Taxonomy term not found: {$slug} in taxonomy {$taxonomy}");
+                }
+            }
+
+            if (!empty($term_ids)) {
+                $result = wp_set_object_terms($post_id, $term_ids, $taxonomy);
+            }
+        }
+    }
+
+    // Upload images
+    $main_featured_image_url = $form_data_array['main_featured_image'] ?? '';
+    $main_featured_image_id = upload_image_from_url($main_featured_image_url, $post_id);
+
+    $featured_image_2_url = $form_data_array['featured_image_2'] ?? '';
+    $featured_image_2_id = upload_image_from_url($featured_image_2_url, $post_id);
+
+    $featured_image_3_url = $form_data_array['featured_image_3'] ?? '';
+    $featured_image_3_id = upload_image_from_url($featured_image_3_url, $post_id);
+
+    $business_logo_url = $form_data_array['business_logo'] ?? '';
+    $business_logo_id = upload_image_from_url($business_logo_url, $post_id);
+
+    $business_photos_urls = isset($form_data_array['business_photos']) ? explode('|', $form_data_array['business_photos']) : [];
+    $business_photos_ids = [];
+    if (!empty($business_photos_urls)) {
+        foreach ($business_photos_urls as $url) {
+            $url = trim($url); // Remove any spaces
+            if (!empty($url)) {
+                $image_id = upload_image_from_url($url, $post_id);
+                if ($image_id) {
+                    $business_photos_ids[] = $image_id;
+                } else {
+                    error_log('Failed to upload image: ' . $url);
+                }
+            }
+        }
+    }
+
+    // Set featured image
+    if ($main_featured_image_id) {
+        set_post_thumbnail($post_id, $main_featured_image_id);
+    }
+
+    // Save images to Business post
+    if ($business_logo_id) {
+        update_field('business_logo', $business_logo_id, $post_id);
+    }
+    if ($featured_image_2_id) {
+        update_field('featured_image_2', $featured_image_2_id, $post_id);
+    }
+    if ($featured_image_3_id) {
+        update_field('featured_image_3', $featured_image_3_id, $post_id);
+    }
+    if (!empty($business_photos_ids)) {
+        update_field('business_photos', $business_photos_ids, $post_id);
+    }
+
+    // Save ACF fields in array
+    $acf_data = array(
+        // Business Details
+        'business_details_established_date' => sanitize_text_field($form_data_array['established_date']),
+        'business_details_minimum_spend' => sanitize_text_field($form_data_array['business_details_minimum_spend']),
+        'business_details_per_type' => sanitize_text_field($form_data_array['business_details_per_type']),
+        'business_details_business_description' => sanitize_textarea_field($form_data_array['describe_your_business']),
+        'business_details_address' => sanitize_text_field($form_data_array['business_details_address']),
+        
+        // Key Facts
+        'key_facts_minimum_size' => sanitize_text_field($form_data_array['key_facts_minimum_size']),
+        'key_facts_maximum_size' => sanitize_text_field($form_data_array['key_facts_maximum_size']),
+
+        'key_facts_have_booking_policy' => sanitize_text_field($form_data_array['booking_policy']),
+        'key_facts_booking_notice' => sanitize_text_field($form_data_array['about_booking_policy']),
+        'key_facts_about_booking_policy' => sanitize_text_field($form_data_array['key_facts_about_booking_policy']),
+        
+        'key_facts_have_cancellation_policy' => sanitize_text_field($form_data_array['cancellation_policy']),
+        'key_facts_cancellation_policy' => sanitize_text_field($form_data_array['about_cancellation_policy']),
+        'key_facts_about_cancellation_policy' => sanitize_text_field($form_data_array['key_facts_about_cancellation_policy']),
+
+        'key_facts_any_licenses_or_insurance' => sanitize_text_field($form_data_array['any_licenses_or_insurance']),
+        'key_facts_select_types_of_licenses_and_insurance' => isset($form_data_array['select_types_of_licenses_and_insurance']) ? array_map('sanitize_text_field', $form_data_array['select_types_of_licenses_and_insurance']) : [],
+
+        // Contact Information
+        'contact_information_business_handle' => sanitize_text_field($form_data_array['contact_information_business_handle']),
+        'contact_information_phone_number' => sanitize_text_field($form_data_array['contact_information_phone_number']),
+        'contact_information_email_address' => sanitize_text_field($form_data_array['contact_information_email_address']),
+        'contact_information_website_link' => sanitize_text_field($form_data_array['contact_information_website_link']),
+
+        // Social Media
+        'social_media_instagram' => sanitize_text_field($form_data_array['social_media_instagram']),
+        'social_media_facebook' => sanitize_text_field($form_data_array['social_media_facebook']),
+        'social_media_tiktok' => sanitize_text_field($form_data_array['social_media_tiktok']),
+        'social_media_twitter' => sanitize_text_field($form_data_array['social_media_twitter']),
+        'social_media_youtube' => sanitize_text_field($form_data_array['social_media_youtube']),
+        'social_media_linkedin' => sanitize_text_field($form_data_array['social_media_linkedin']),
+        'social_media_pinterest' => sanitize_text_field($form_data_array['social_media_pinterest']),
+    );
+
+    // Update ACF fields
+    foreach ($acf_data as $field_name => $field_value) {
+        update_field($field_name, $field_value, $post_id);
+    }
+
     // die();
 }
 
-add_action( 'fusion_form_submission_data', 'create_business_from_avada_form_submission' );
+add_action('fusion_form_submission_data', 'create_business_from_avada_form_submission');
