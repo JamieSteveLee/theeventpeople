@@ -104,7 +104,8 @@ function create_business_from_avada_form_submission($form_data) {
         'food-services-category',
         'photography-video-category',
         'transport-logistics-category',
-        'other-category'
+        'other-category',
+        'type-of-event'
     ];
 
     // Taxonomy 'industry-type' (select box)
@@ -122,6 +123,10 @@ function create_business_from_avada_form_submission($form_data) {
             $term_ids = [];
 
             foreach ($form_data_array[$taxonomy] as $slug) {
+                if ($taxonomy === 'type-of-event') {
+                    $taxonomy = str_replace('-', '_', $taxonomy);
+                }
+
                 $term = get_term_by('slug', $slug, $taxonomy);
                 if ($term) {
                     $term_ids[] = (int) $term->term_id;
@@ -135,6 +140,42 @@ function create_business_from_avada_form_submission($form_data) {
             }
         }
     }
+
+    // Mapping slugs to labels for type_of_event
+    $event_labels = [
+        'anniversaries' => 'Anniversaries',
+        'baby-showers' => 'Baby Showers',
+        'birthday-parties' => 'Birthday Parties',
+        'charity-galas' => 'Charity Galas',
+        'corporate-events' => 'Corporate Events',
+        'engagement-parties' => 'Engagement Parties',
+        'festivals' => 'Festivals',
+        'garden-parties' => 'Garden Parties',
+        'house-parties' => 'House Parties',
+        'private-parties' => 'Private Parties',
+        'product-launches' => 'Product Launches',
+        'seasonal-events' => 'Seasonal Events',
+        'weddings' => 'Weddings'
+    ];
+
+    // Update Event Type ACF
+    // The same form data is used to set taxonomies above, but this is for setting the Advanced Custom Field
+    if (!empty($form_data_array['type-of-event']) && is_array($form_data_array['type-of-event'])) {
+        $event_types = [];
+
+        foreach ($form_data_array['type-of-event'] as $slug) {
+            if (isset($event_labels[$slug])) {
+                $event_types[] = $event_labels[$slug];
+            } else {
+                error_log("Unknown event type slug: {$slug}");
+            }
+        }
+
+        if (!empty($event_types)) {
+            update_field('key_facts_type_of_event', $event_types, $post_id);
+        }
+    }
+
 
     // Upload images
     $main_featured_image_url = $form_data_array['main_featured_image'] ?? '';
@@ -153,7 +194,7 @@ function create_business_from_avada_form_submission($form_data) {
     $business_photos_ids = [];
     if (!empty($business_photos_urls)) {
         foreach ($business_photos_urls as $url) {
-            $url = trim($url); // Remove any spaces
+            $url = trim($url); // Remove spaces
             if (!empty($url)) {
                 $image_id = upload_image_from_url($url, $post_id);
                 if ($image_id) {
@@ -226,7 +267,10 @@ function create_business_from_avada_form_submission($form_data) {
 
     // Update ACF fields
     foreach ($acf_data as $field_name => $field_value) {
-        update_field($field_name, $field_value, $post_id);
+        $result = update_field($field_name, $field_value, $post_id);
+        if (!$result) {
+            error_log("Failed to update ACF Field: {$field_name}");
+        }
     }
 
     // die();
