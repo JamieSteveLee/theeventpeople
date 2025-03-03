@@ -104,10 +104,10 @@ function create_business_from_avada_form_submission($form_data) {
         'food-services-category',
         'photography-video-category',
         'transport-logistics-category',
-        'other-category',
+        'unique-category',
         'type-of-event'
     ];
-
+  
     // Taxonomy 'industry-type' (select box)
     if (!empty($form_data_array['industry-type'])) {
         $industry_slug = $form_data_array['industry-type'];
